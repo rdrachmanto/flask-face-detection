@@ -46,7 +46,7 @@ def setup_model():
     return model
 
 
-def inference(face):
+def inference(model, face):
     transformer = transforms.Compose(
         [
             transforms.Resize((299, 299)),
@@ -56,10 +56,6 @@ def inference(face):
 
     image_tensor = transformer(face)
     image_tensor = image_tensor.unsqueeze(0).to("cuda")
-
-    model = setup_model()
-    model.to("cuda")
-    model.eval()
 
     with torch.no_grad():
         prediction = model(image_tensor)
@@ -101,6 +97,10 @@ def draw_bounding_box(frame: MatLike, bboxes, predicted_class):
 def pipeline():
     capture = cv2.VideoCapture("data/FaceSwap_046_904.mp4")
 
+    model = setup_model()
+    model.to("cuda")
+    model.eval()
+
     while True:
         ret, frame = capture.read()
         if not ret:
@@ -109,7 +109,7 @@ def pipeline():
         pil_image, bboxes = detect_face(frame)
         if bboxes is not None:
             cropped_face = crop_frame_to_face(pil_image, bboxes)
-            predicted_class = inference(cropped_face)
+            predicted_class = inference(model, cropped_face)
             frame = draw_bounding_box(frame, bboxes, predicted_class)
 
         ret, buffer = cv2.imencode(".jpg", frame)
